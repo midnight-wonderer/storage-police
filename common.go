@@ -13,7 +13,6 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/ncw/directio"
 	"github.com/urfave/cli/v3"
-	"golang.org/x/sys/unix"
 	"lukechampine.com/blake3"
 )
 
@@ -59,13 +58,13 @@ func parseDeviceConfig(cmd *cli.Command, seedParam *string) (*deviceConfig, erro
 	if device == "" {
 		return nil, fmt.Errorf("device is required")
 	}
+	device = adjustDevicePath(device)
 
 	fileInfo, err := os.Stat(device)
 	if err != nil {
 		return nil, err
 	}
-	mode := fileInfo.Mode()
-	if mode&os.ModeDevice == 0 || mode&os.ModeCharDevice != 0 {
+	if !isBlockDevice(fileInfo) {
 		return nil, fmt.Errorf("device %s is not a block device", device)
 	}
 
@@ -130,14 +129,6 @@ func (a *baseApp) displayInfo(processName string) error {
 	t.Render()
 	fmt.Printf("\nStarting %s process. This might take a while...\n", strings.ToLower(processName))
 	return nil
-}
-
-func getBlockDeviceSize(f *os.File) (int, error) {
-	size, err := unix.IoctlGetInt(int(f.Fd()), unix.BLKGETSIZE64)
-	if err != nil {
-		return 0, fmt.Errorf("could not get size of block device: %w", err)
-	}
-	return size, nil
 }
 
 type progressTracker struct {

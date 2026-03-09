@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/ncw/directio"
 	"github.com/urfave/cli/v3"
-	"golang.org/x/sys/unix"
 )
 
 type mode int
@@ -141,7 +139,7 @@ func (a *writerApp) performWrite() error {
 
 		byteWritten, wErr := a.device.Write(buf[:chunkLen])
 		if wErr != nil {
-			if !errors.Is(wErr, unix.ENOSPC) {
+			if !isNoSpaceError(wErr) {
 				fmt.Printf("\n%s interrupted or failed: %v\n", a.actionWord, wErr)
 				return wErr
 			}
