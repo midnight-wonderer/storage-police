@@ -11,6 +11,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/dustin/go-humanize"
+	"github.com/ncw/directio"
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sys/unix"
 )
@@ -109,7 +110,7 @@ func (a *writerApp) run() error {
 }
 
 func (a *writerApp) performWrite() error {
-	buf := allocateAligned(1024*1024, 4096) // 1 MiB chunk, 4K aligned for O_DIRECT
+	buf := directio.AlignedBlock(1024 * 1024)
 	written := int64(0)
 	startTime := time.Now()
 	lastPrint := time.Now()

@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/ncw/directio"
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sys/unix"
 	"lukechampine.com/blake3"
@@ -79,7 +79,7 @@ func (a *baseApp) hashSeed() {
 
 func (a *baseApp) openDevice(flag int) error {
 	device := a.cfg.device
-	f, err := os.OpenFile(device, flag|unix.O_DIRECT, 0666)
+	f, err := directio.OpenFile(device, flag, 0666)
 	if err != nil {
 		return err
 	}
@@ -116,15 +116,6 @@ func getBlockDeviceSize(f *os.File) (int, error) {
 		return 0, fmt.Errorf("could not get size of block device: %w", err)
 	}
 	return size, nil
-}
-
-func allocateAligned(size, align int) []byte {
-	buf := make([]byte, size+align-1)
-	offset := int(uintptr(unsafe.Pointer(&buf[0])) % uintptr(align))
-	if offset != 0 {
-		offset = align - offset
-	}
-	return buf[offset : offset+size]
 }
 
 type progressTracker struct {

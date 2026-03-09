@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/huh v0.8.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/jedib0t/go-pretty/v6 v6.7.8
+	github.com/ncw/directio v1.0.5
 	golang.org/x/sys v0.42.0
 	lukechampine.com/blake3 v1.4.1
 )

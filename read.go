@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/ncw/directio"
 	"github.com/urfave/cli/v3"
 )
 
@@ -66,8 +67,8 @@ func (a *readerApp) run() error {
 }
 
 func (a *readerApp) performRead() error {
-	buf := allocateAligned(1024*1024, 4096)
-	expectedBuf := allocateAligned(1024*1024, 4096)
+	buf := directio.AlignedBlock(1024 * 1024)
+	expectedBuf := directio.AlignedBlock(1024 * 1024)
 	readBytes := int64(0)
 	startTime := time.Now()
 	lastPrint := time.Now()
