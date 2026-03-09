@@ -106,7 +106,7 @@ func (a *baseApp) displayInfo(processName string) error {
 		a.cfg.seed,
 	})
 	t.Render()
-	fmt.Printf("Starting %s process. This might take a while...\n", processName)
+	fmt.Printf("\nStarting %s process. This might take a while...\n", strings.ToLower(processName))
 	return nil
 }
 
