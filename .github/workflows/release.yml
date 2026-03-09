@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags matching v*, i.e. v1.0.0
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create release
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable' # Uses the latest stable Go release
+          
+      - name: Build Binaries
+        run: |
+          mkdir -p build
+          
+          # We pass the Git tag (e.g., v1.0.0) into the main.Version variable
+          # We also use -s and -w to strip debug information and reduce binary size
+          LDFLAGS="-s -w -X main.Version=${GITHUB_REF_NAME}"
+          
+          # Linux
+          GOOS=linux GOARCH=amd64 go build -ldflags="$LDFLAGS" -o build/storage-police-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build -ldflags="$LDFLAGS" -o build/storage-police-linux-arm64 .
+          
+          # macOS
+          GOOS=darwin GOARCH=amd64 go build -ldflags="$LDFLAGS" -o build/storage-police-darwin-amd64 .
+          GOOS=darwin GOARCH=arm64 go build -ldflags="$LDFLAGS" -o build/storage-police-darwin-arm64 .
+          
+          # Windows
+          GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o build/storage-police-windows-amd64.exe .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/*
+          generate_release_notes: true

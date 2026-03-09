@@ -8,11 +8,13 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+var Version = "dev"
+
 var versionCmd = &cli.Command{
 	Name:  "version",
 	Usage: "print the version",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		v := "dev"
+		v := Version
 		if info, ok := debug.ReadBuildInfo(); ok && v == "dev" {
 			if info.Main.Version != "" && info.Main.Version != "(devel)" {
 				v = info.Main.Version
