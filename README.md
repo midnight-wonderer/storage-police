@@ -11,7 +11,7 @@
 ## 🚀 Core Mission
 
 - **🔍 Expose Fake Capacity**: Detect fraudulent media that report more storage than they physically possess.
-- **� Detect Hardware Failures**: Identify disk errors, flash memory degradation, or other physical hardware issues.
+- **🚨 Detect Hardware Failures**: Identify disk errors, flash memory degradation, or other physical hardware issues.
 
 ## 🎁 Bonus Capabilities
 
@@ -29,7 +29,14 @@
 
 ## 📦 Installation
 
-To install **Storage Police**, ensure you have [Go](https://golang.org/doc/install) installed and run:
+### 💾 Option 1: Pre-built Binaries (Quickest)
+Download the latest pre-compiled binaries for Linux, macOS, and Windows from our [Releases Page](https://github.com/midnight-wonderer/storage-police/releases).
+
+> [!NOTE]
+> For full transparency and peace of mind, all pre-built binaries are compiled automatically directly from source via [GitHub Actions](https://github.com/midnight-wonderer/storage-police/actions/workflows/release.yml).
+
+### 🛠 Option 2: Build From Source
+If you have [Go](https://golang.org/doc/install) installed:
 
 ```bash
 go install github.com/midnight-wonderer/storage-police@latest
@@ -37,7 +44,7 @@ go install github.com/midnight-wonderer/storage-police@latest
 
 ---
 
-## 🛠 Quick Start
+## 🧭 Quick Start
 
 ### 1. Write
 Fill the target device with a unique, deterministic pseudo-random sequence.
