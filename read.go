@@ -97,6 +97,9 @@ func (a *readerApp) performRead() error {
 		}
 
 		if !bytes.Equal(buf[:chunkLen], expectedBuf[:chunkLen]) {
+			if readBytes < 16 {
+				return cli.Exit("\nVerification failed. Please check your seed.\n", 1)
+			}
 			return cli.Exit(fmt.Sprintf("\nVerification failed at offset %d: data mismatch\n", readBytes), 1)
 		}
 
