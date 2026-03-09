@@ -1,114 +1,126 @@
-# `storage-police` - Catch Storage Fraudsters
+# 🚔 Storage Police — Stop Storage Fraud
 
-Storage Police helps identify fake storage media, and fraudulent capacity labels—including HDDs, SSDs, flash drives, SD cards, TF cards, and other storage devices.
+[![Go Version](https://img.shields.io/badge/go-1.25+-00ADD8?style=for-the-badge&logo=go)](https://golang.org/dl/)
+[![License](https://img.shields.io/badge/license-BSD--2--Clause-blue?style=for-the-badge)](LICENSE.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
-## Use cases
+**Storage Police** is a utility designed to expose fake storage media and fraudulent capacity labels. Whether it's an HDD, SSD, flash drive, or SD card, this tool ensures that what's on the label is what's actually in the hardware.
 
-- **Detect Hardware Failures**: Identify disk errors, flash memory degradation, or other physical hardware issues.
-- **Expose Fake Capacity**: Detect fraudulent media that report more storage than they physically possess.
-- **Securely Wipe Data**: Use the `scrub` subcommand to reliably overwrite all data.
+---
 
-## How it Works
+## 🚀 Core Mission
 
-The tool __writes__ a unique pseudorandom sequence onto the target storage media. You can then subject the device to real-world conditions—such as summer heat—and use the tool to __retrieve and verify__ the sequence against the expected values to ensure the media can reliably hold your data.
+- **🔍 Expose Fake Capacity**: Detect fraudulent media that report more storage than they physically possess.
+- **� Detect Hardware Failures**: Identify disk errors, flash memory degradation, or other physical hardware issues.
 
-## Quick starts
+## 🎁 Bonus Capabilities
 
-### Write
+- **⚡ Performance Benchmarking**: Real-time monitoring of sequential write and read speeds, serving as an unintentional benchmark.
+- **🧹 Secure Data Wiping**: A dedicated `scrub` mode to reliably overwrite devices with unpredictable random data.
 
-~~~bash
-storage-police write --seed Genie /dev/sdc
-~~~
+## ✨ The "Secret Sauce" (Why it wins)
 
-The `seed` helps ensure the sequence written is unique to you.
-You could use your nickname, for instance.
+- **🛡 Unfakable Verification**: Uses an unpredictable BLAKE3-based sequence to prevent disk controllers from cheating via transparent data compression or deduplication.
+- **📍 Byte-Perfect Testing**: Mirrors real-world conditions by ensuring every byte is physically stored and can be accurately retrieved.
+- **⏱ High-Efficiency Testing**: Specifically focused on retention and integrity, resulting in significantly shorter test times than general-purpose tools.
+- **💻 Streamlined UX**: Inspired by `disktest` but redesigned for simplicity with intuitive parameters and clear, modern feedback.
 
-### Read (Verify)
+---
 
-~~~bash
-storage-police read --seed Genie /dev/sdc
-~~~
+## 📦 Installation
 
-The `seed` must match the one used when writing the sequence.
+To install **Storage Police**, ensure you have [Go](https://golang.org/doc/install) installed and run:
 
-### Notes
+```bash
+go install github.com/midnight-wonderer/storage-police@latest
+```
 
-* **Warning**: The writing process will completely wipe your storage device. Ensure you do not have any important data on the device before proceeding.
-* On most systems, you must run these commands with `sudo` to avoid "permission denied" errors.
-* Power cycle the device (unplug, wait, and replug) before reading to verify data retention.
+---
 
-### Scrub (Extra Mode)
+## 🛠 Quick Start
 
-~~~bash
-storage-police scrub /dev/sdc
-~~~
+### 1. Write
+Fill the target device with a unique, deterministic pseudo-random sequence.
 
-Fill the device using a ramdomized seed.
+```bash
+sudo storage-police write --seed "MySecretSeed" /dev/sdc
+```
+> [!TIP]
+> Use a unique `seed` to ensure the pattern is specific to your test.
+> You could use your nickname, for instance.
 
-## Why it is better than other tools
+### 2. Read (Verify)
+Verify that every byte written can be retrieved accurately.
 
-* **Unfakable Verification**: Uses an unpredictable pseudo-random sequence to prevent disk controllers from cheating via transparent data compression or deduplication.
-* **Realistic Full-Disk Testing**: Mirrors real-world usage by ensuring every byte is physically stored and can be accurately retrieved after filling the media to capacity.
-* **Optimized Performance**: Focuses strictly on data retention and integrity, resulting in significantly faster test times than general-purpose diagnostic tools.
-* **Streamlined UX**: Inspired by `disktest` but redesigned for simplicity, offering a more intuitive interface with fewer, more focused parameters.
+```bash
+sudo storage-police read --seed "MySecretSeed" /dev/sdc
+```
+> [!IMPORTANT]
+> The `seed` must be identical to the one used during the `write` phase.
 
-## Bonus
+### 3. Read the docs
+For all the extra goodies you might not know you want yet.
 
-* **Performance Monitoring**: Shows sequential write and read performance during operations, serving as an unintentional benchmark tool.
-* **Data Scrubbing**: The `scrub` subcommand is available to overwrite data on magnetic platters. It is essentially the `write` mode with a cryptographically randomized `seed`.
-
-## Available Command-line Options
-
-~~~bash
+```bash
 storage-police --help
-~~~
+```
 
-## Shell completion
+---
 
-### Quick & Dirty
+## ⚠️ Critical Warning
 
-~~~sh
-# bash
+> [!CAUTION]  
+> **Data Loss is Permanent.**  
+> The `write` commands will **completely wipe** the target storage device. Double-check your device path (e.g., `/dev/sdc`) before proceeding. We are not responsible for any accidental data loss.
+
+### FWIW
+1. **Sudo access**: Most systems require elevated permissions to access raw block devices.
+2. **Power Cycle**: For the most reliable "fake capacity" detection, unplug and replug the device after the `write` phase before starting the `read` phase. This clears any volatile cache.
+
+---
+
+## 🔬 Technical Details
+
+### How it Works
+The tool generates a unique, deterministic stream based on your provided seed. Without knowing the seed, it is virtually impossible for a malicious storage controller to "fake" a successful verification by predicting the next sequence.
+
+### The Algorithm
+The pseudo-random stream is generated using **BLAKE3** in Extendable Output Function (XOF) mode.
+```text
+OUTPUT_STREAM := BLAKE3_XOF(SEED)
+```
+This provides cryptographically strong randomness at speeds that typically exceed the storage media's physical limits.
+
+### Is `scrub` Secure?
+Yes. The `scrub` subcommand uses your system's cryptographically secure random number generator (CSPRNG) to initialize the seed, ensuring the data written is unpredictable.
+
+> [!NOTE]  
+> On SSDs, internal wear-leveling might prevent 100% physical erasure of every NAND cell. For ultra-sensitive data, physical destruction is recommended.
+
+---
+
+## ⚙️ Shell Completion
+
+Enable command-line completion for a better experience:
+
+```bash
+# To try it now:
 source <(storage-police completion bash)
 
-# zsh
-source <(storage-police completion zsh)
-
-# fish
-source <(storage-police completion fish)
-~~~
-
-### Permanent
-
-~~~bash
-# bash example
+# To make it permanent:
 storage-police completion bash > ~/.local/share/bash-completion/completions/storage-police
-~~~
+```
+*(Supports `bash`, `zsh`, and `fish`)*
 
-## Technical Details & Algorithm
+---
 
-### Is it secure?
-Yes. The tool generates a unique, deterministic stream based on your provided seed. Without knowing the seed, it is virtually impossible for a malicious storage controller to predict the sequence to "fake" a successful verification.
+## 💡 Alternatives
 
-### Is it fast?
-Yes. The sequence generation is highly optimized and will likely be much faster than your storage media's read or write speeds. The bottleneck will almost always be your storage hardware, not the sequence generator.
+- [**disktest**](https://bues.ch/cms/hacking/disktest) - The primary inspiration for this tool.
+- [**f3 (Fight Flash Fraud)**](https://github.com/AltraMayor/f3) - A classic tool for testing capacity and performance.
 
-### What algorithm does it use?
-The pseudo-random stream is generated using **BLAKE3** in Extendable Output Function (XOF) mode. This provides cryptographically strong randomness.
+---
 
-~~~
-OUTPUT_STREAM := BLAKE3_XOF(SEED)
-~~~
+## 📜 License
 
-### Is the `scrub` mode secure?
-The `scrub` subcommand writes cryptographically secure pseudorandom data, as discussed, to the device. The tool utilizes your system's cryptographically secure random number generator (CSPRNG) for seed initialization.
-
-While the tool is as secure as a software-based approach can be, we cannot guarantee absolute data sanitization. For instance, modern SSDs utilize internal controllers for wear-leveling and block remapping, which may result in some physical cells not being overwritten, potentially leaving data recoverable via specialized forensic techniques.
-
-## Alternatives
-* [**disktest**](https://bues.ch/cms/hacking/disktest), which inspired this tool. Check it out if you enjoy fiddling with algorithms and parameters.
-* [**f3** (Fight Flash Fraud)](https://github.com/AltraMayor/f3), the classic. It tests both capacity and performance using multiple access patterns, which makes the testing process take longer.
-
-## License
-
-Storage Police is released under the [BSD 2-Clause License](LICENSE.md).
+Storage Police is released under the [BSD 2-Clause License](LICENSE.md).  
