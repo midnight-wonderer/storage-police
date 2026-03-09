@@ -15,16 +15,16 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type Mode int
+type mode int
 
 const (
-	ModeWrite Mode = iota
-	ModeScrub
+	modeWrite mode = iota + 1
+	modeScrub
 )
 
 type writerApp struct {
 	baseApp
-	mode       Mode
+	mode       mode
 	actionWord string
 }
 
@@ -43,7 +43,7 @@ var writeCmd = &cli.Command{
 	},
 	Usage: "write a pseudorandom binary sequence to a drive",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		app, err := newWriter(ctx, cmd, ModeWrite, "Write")
+		app, err := newWriter(ctx, cmd, modeWrite, "Write")
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ var scrubCmd = &cli.Command{
 	},
 	Usage: "securely scrub a drive with a pseudorandom binary sequence",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		app, err := newWriter(ctx, cmd, ModeScrub, "Scrub")
+		app, err := newWriter(ctx, cmd, modeScrub, "Scrub")
 		if err != nil {
 			return err
 		}
@@ -68,9 +68,9 @@ var scrubCmd = &cli.Command{
 	},
 }
 
-func newWriter(ctx context.Context, cmd *cli.Command, mode Mode, actionWord string) (*writerApp, error) {
+func newWriter(ctx context.Context, cmd *cli.Command, m mode, actionWord string) (*writerApp, error) {
 	var seed *string
-	if mode == ModeScrub {
+	if m == modeScrub {
 		b := make([]byte, 32)
 		if _, err := rand.Read(b); err != nil {
 			return nil, fmt.Errorf("Failed to generate random seed: %w", err)
@@ -83,7 +83,7 @@ func newWriter(ctx context.Context, cmd *cli.Command, mode Mode, actionWord stri
 	if err != nil {
 		return nil, err
 	}
-	a := &writerApp{mode: mode, actionWord: actionWord}
+	a := &writerApp{mode: m, actionWord: actionWord}
 	a.ctx = ctx
 	a.cfg = cfg
 	return a, nil
