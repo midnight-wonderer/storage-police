@@ -4,33 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/charmbracelet/huh"
 	"github.com/dustin/go-humanize"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/urfave/cli/v3"
 	"golang.org/x/sys/unix"
-	"lukechampine.com/blake3"
 )
 
-type writeConfig struct {
-	seed   string
-	device string
-	info   os.FileInfo
-}
-
 type app struct {
-	ctx            context.Context
-	cfg            *writeConfig
-	stream         io.Reader
-	device         *os.File
-	deviceCapacity int
+	baseApp
 }
 
 var writeCmd = &cli.Command{
@@ -57,11 +41,11 @@ var writeCmd = &cli.Command{
 }
 
 func newWriter(ctx context.Context, cmd *cli.Command) (*app, error) {
-	cfg, err := parseConfig(cmd)
+	cfg, err := parseDeviceConfig(cmd)
 	if err != nil {
 		return nil, err
 	}
-	return &app{ctx: ctx, cfg: cfg}, nil
+	return &app{baseApp: baseApp{ctx: ctx, cfg: cfg}}, nil
 }
 
 func (a *app) run() error {
@@ -71,21 +55,16 @@ func (a *app) run() error {
 
 	a.hashSeed()
 
-	if err := a.openDevice(); err != nil {
+	if err := a.openDevice(os.O_WRONLY); err != nil {
 		return err
 	}
 	defer a.device.Close()
 
-	if err := a.displayInfo(); err != nil {
+	if err := a.displayInfo("write"); err != nil {
 		return err
 	}
 
 	return a.performWrite()
-}
-
-type progressRecord struct {
-	timestamp time.Time
-	bytes     int64
 }
 
 func (a *app) performWrite() error {
@@ -93,9 +72,8 @@ func (a *app) performWrite() error {
 	written := int64(0)
 	startTime := time.Now()
 	lastPrint := time.Now()
-	firstPrint := true
 
-	history := []progressRecord{{timestamp: startTime, bytes: 0}}
+	pt := newProgressTracker(startTime, a.deviceCapacity)
 
 	for {
 		select {
@@ -133,53 +111,7 @@ func (a *app) performWrite() error {
 		if time.Since(lastPrint) > 500*time.Millisecond {
 			now := time.Now()
 			lastPrint = now
-
-			history = append(history, progressRecord{timestamp: now, bytes: written})
-			// keep last 5 seconds of history to display the current write speed
-			cutoff := now.Add(-5 * time.Second)
-			keepFrom := 0
-			maxDiscard := len(history) - 1
-			for keepFrom < maxDiscard && history[keepFrom+1].timestamp.Before(cutoff) {
-				keepFrom++
-			}
-			history = history[keepFrom:]
-
-			// calculate displayed stats
-			oldest := history[0]
-			elapsed := now.Sub(oldest.timestamp).Seconds()
-			speed := 0.0
-			if elapsed > 0 {
-				speed = float64(written-oldest.bytes) / elapsed
-			}
-			percent := 0.0
-			if a.deviceCapacity > 0 {
-				percent = float64(written) / float64(a.deviceCapacity) * 100
-			}
-
-			// display stats
-			t := table.NewWriter()
-			t.SetStyle(table.StyleRounded)
-			t.SetColumnConfigs([]table.ColumnConfig{
-				{Number: 1, AlignHeader: text.AlignCenter, Align: text.AlignRight, WidthMin: 10},
-				{Number: 2, AlignHeader: text.AlignCenter, Align: text.AlignRight, WidthMin: 10},
-				{Number: 3, AlignHeader: text.AlignCenter, Align: text.AlignRight, WidthMin: 10},
-				{Number: 4, AlignHeader: text.AlignCenter, Align: text.AlignRight, WidthMin: 12},
-			})
-			t.AppendHeader(table.Row{"Progress", "Total", "Percentage", "Speed"})
-			t.AppendRow(table.Row{
-				humanize.Bytes(uint64(written)),
-				humanize.Bytes(uint64(a.deviceCapacity)),
-				fmt.Sprintf("%.2f%%", percent),
-				humanize.Bytes(uint64(speed)) + "/s",
-			})
-
-			output := t.Render()
-			numLines := strings.Count(output, "\n") + 1
-			if !firstPrint {
-				fmt.Printf("\r\033[%dA", numLines)
-			}
-			fmt.Println(output)
-			firstPrint = false
+			pt.print(now, written)
 		}
 	}
 
@@ -193,28 +125,6 @@ func (a *app) performWrite() error {
 	)
 
 	return a.device.Sync()
-}
-
-func parseConfig(cmd *cli.Command) (*writeConfig, error) {
-	if cmd.Args().Present() {
-		return nil, fmt.Errorf("unknown argument: %s", cmd.Args().First())
-	}
-	seed := cmd.String("seed")
-	if seed == "" {
-		return nil, fmt.Errorf("seed is required")
-	}
-	device := cmd.StringArg("device")
-
-	fileInfo, err := os.Stat(device)
-	if err != nil {
-		return nil, err
-	}
-	mode := fileInfo.Mode()
-	if mode&os.ModeDevice == 0 || mode&os.ModeCharDevice != 0 {
-		return nil, fmt.Errorf("device %s is not a block device", device)
-	}
-
-	return &writeConfig{seed: seed, device: device, info: fileInfo}, nil
 }
 
 func (a *app) confirm() error {
@@ -234,60 +144,4 @@ func (a *app) confirm() error {
 	}
 
 	return nil
-}
-
-func (a *app) hashSeed() {
-	hasher := blake3.New(32, nil)
-	hasher.Write([]byte(a.cfg.seed))
-	a.stream = hasher.XOF()
-}
-
-func (a *app) openDevice() error {
-	device := a.cfg.device
-	f, err := os.OpenFile(device, os.O_WRONLY|unix.O_DIRECT, 0666)
-	if err != nil {
-		return err
-	}
-
-	size, err := getBlockDeviceSize(f)
-	if err != nil {
-		f.Close()
-		return fmt.Errorf("could not get size of block device %s: %w", device, err)
-	}
-
-	a.deviceCapacity = size
-	a.device = f
-	return nil
-}
-
-func (a *app) displayInfo() error {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleRounded)
-	t.AppendHeader(table.Row{"Device", "Size", "Seed"})
-	t.AppendRow(table.Row{
-		a.cfg.device,
-		humanize.Bytes(uint64(a.deviceCapacity)),
-		a.cfg.seed,
-	})
-	t.Render()
-	fmt.Println("Starting write process. This might take a while...")
-	return nil
-}
-
-func getBlockDeviceSize(f *os.File) (int, error) {
-	size, err := unix.IoctlGetInt(int(f.Fd()), unix.BLKGETSIZE64)
-	if err != nil {
-		return 0, fmt.Errorf("could not get size of block device: %w", err)
-	}
-	return size, nil
-}
-
-func allocateAligned(size, align int) []byte {
-	buf := make([]byte, size+align-1)
-	offset := int(uintptr(unsafe.Pointer(&buf[0])) % uintptr(align))
-	if offset != 0 {
-		offset = align - offset
-	}
-	return buf[offset : offset+size]
 }
