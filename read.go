@@ -24,6 +24,10 @@ var readCmd = &cli.Command{
 			Name:  "seed",
 			Usage: "seed for the random number generator",
 		},
+		&cli.BoolFlag{
+			Name:  "invert-pattern",
+			Usage: "invert the expected pattern",
+		},
 	},
 	Arguments: []cli.Argument{
 		&cli.StringArg{
@@ -52,7 +56,7 @@ func newReader(ctx context.Context, cmd *cli.Command) (*readerApp, error) {
 }
 
 func (a *readerApp) run() error {
-	a.hashSeed()
+	a.hashSeed(a.cfg.invertPattern)
 
 	if err := a.openDevice(os.O_RDONLY); err != nil {
 		return err

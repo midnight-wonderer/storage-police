@@ -18,9 +18,10 @@ import (
 )
 
 type deviceConfig struct {
-	seed   string
-	device string
-	info   os.FileInfo
+	seed          string
+	device        string
+	info          os.FileInfo
+	invertPattern bool
 }
 
 type baseApp struct {
@@ -68,13 +69,34 @@ func parseDeviceConfig(cmd *cli.Command, seedParam *string) (*deviceConfig, erro
 		return nil, fmt.Errorf("device %s is not a block device", device)
 	}
 
-	return &deviceConfig{seed: seed, device: device, info: fileInfo}, nil
+	return &deviceConfig{
+		seed:          seed,
+		device:        device,
+		info:          fileInfo,
+		invertPattern: cmd.Bool("invert-pattern"),
+	}, nil
 }
 
-func (a *baseApp) hashSeed() {
+func (a *baseApp) hashSeed(invert bool) {
 	hasher := blake3.New(32, nil)
 	hasher.Write([]byte(a.cfg.seed))
-	a.stream = hasher.XOF()
+	if invert {
+		a.stream = &invertedReader{r: hasher.XOF()}
+	} else {
+		a.stream = hasher.XOF()
+	}
+}
+
+type invertedReader struct {
+	r io.Reader
+}
+
+func (ir *invertedReader) Read(p []byte) (n int, err error) {
+	n, err = ir.r.Read(p)
+	for i := 0; i < n; i++ {
+		p[i] = ^p[i]
+	}
+	return n, err
 }
 
 func (a *baseApp) openDevice(flag int) error {

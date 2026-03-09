@@ -36,6 +36,10 @@ var writeCmd = &cli.Command{
 			Name:  "seed",
 			Usage: "seed for the random number generator",
 		},
+		&cli.BoolFlag{
+			Name:  "invert-pattern",
+			Usage: "invert the generated pattern",
+		},
 	},
 	Arguments: []cli.Argument{
 		&cli.StringArg{
@@ -95,7 +99,7 @@ func (a *writerApp) run() error {
 		return err
 	}
 
-	a.hashSeed()
+	a.hashSeed(a.cfg.invertPattern)
 
 	if err := a.openDevice(os.O_WRONLY); err != nil {
 		return err
