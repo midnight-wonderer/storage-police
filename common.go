@@ -47,12 +47,14 @@ func parseDeviceConfig(cmd *cli.Command, seedParam *string) (*deviceConfig, erro
 	} else {
 		seed = cmd.String("seed")
 	}
-
 	if seed == "" {
 		return nil, fmt.Errorf("seed is required")
 	}
-	device := cmd.StringArg("device")
+	if len(seed) > 64 {
+		return nil, fmt.Errorf("seed is too long (max 64 bytes)")
+	}
 
+	device := cmd.StringArg("device")
 	if device == "" {
 		return nil, fmt.Errorf("device is required")
 	}
