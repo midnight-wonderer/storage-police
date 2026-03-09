@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -13,8 +15,17 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type app struct {
+type Mode int
+
+const (
+	ModeWrite Mode = iota
+	ModeScrub
+)
+
+type writerApp struct {
 	baseApp
+	mode       Mode
+	actionWord string
 }
 
 var writeCmd = &cli.Command{
@@ -32,7 +43,7 @@ var writeCmd = &cli.Command{
 	},
 	Usage: "write a pseudorandom binary sequence to a drive",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		app, err := newWriter(ctx, cmd)
+		app, err := newWriter(ctx, cmd, ModeWrite, "Write")
 		if err != nil {
 			return err
 		}
@@ -40,15 +51,45 @@ var writeCmd = &cli.Command{
 	},
 }
 
-func newWriter(ctx context.Context, cmd *cli.Command) (*app, error) {
-	cfg, err := parseDeviceConfig(cmd)
+var scrubCmd = &cli.Command{
+	Name: "scrub",
+	Arguments: []cli.Argument{
+		&cli.StringArg{
+			Name: "device",
+		},
+	},
+	Usage: "securely scrub a drive with a pseudorandom binary sequence",
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		app, err := newWriter(ctx, cmd, ModeScrub, "Scrub")
+		if err != nil {
+			return err
+		}
+		return app.run()
+	},
+}
+
+func newWriter(ctx context.Context, cmd *cli.Command, mode Mode, actionWord string) (*writerApp, error) {
+	var seed *string
+	if mode == ModeScrub {
+		b := make([]byte, 32)
+		if _, err := rand.Read(b); err != nil {
+			return nil, fmt.Errorf("Failed to generate random seed: %w", err)
+		}
+		s := hex.EncodeToString(b)
+		seed = &s
+	}
+
+	cfg, err := parseDeviceConfig(cmd, seed)
 	if err != nil {
 		return nil, err
 	}
-	return &app{baseApp: baseApp{ctx: ctx, cfg: cfg}}, nil
+	a := &writerApp{mode: mode, actionWord: actionWord}
+	a.ctx = ctx
+	a.cfg = cfg
+	return a, nil
 }
 
-func (a *app) run() error {
+func (a *writerApp) run() error {
 	if err := a.confirm(); err != nil {
 		return err
 	}
@@ -60,14 +101,14 @@ func (a *app) run() error {
 	}
 	defer a.device.Close()
 
-	if err := a.displayInfo("write"); err != nil {
+	if err := a.displayInfo(a.actionWord); err != nil {
 		return err
 	}
 
 	return a.performWrite()
 }
 
-func (a *app) performWrite() error {
+func (a *writerApp) performWrite() error {
 	buf := allocateAligned(1024*1024, 4096) // 1 MiB chunk, 4K aligned for O_DIRECT
 	written := int64(0)
 	startTime := time.Now()
@@ -78,7 +119,7 @@ func (a *app) performWrite() error {
 	for {
 		select {
 		case <-a.ctx.Done():
-			return cli.Exit("\nWrite interrupted by user.\n", 1)
+			return cli.Exit(fmt.Sprintf("\n%s interrupted by user.\n", a.actionWord), 1)
 		default:
 		}
 
@@ -96,7 +137,7 @@ func (a *app) performWrite() error {
 		byteWritten, wErr := a.device.Write(buf[:chunkLen])
 		if wErr != nil {
 			if !errors.Is(wErr, unix.ENOSPC) {
-				fmt.Printf("\nWrite interrupted or failed: %v\n", wErr)
+				fmt.Printf("\n%s interrupted or failed: %v\n", a.actionWord, wErr)
 				return wErr
 			}
 			break // ENOSPC (No space left on device) means we are done
@@ -119,7 +160,8 @@ func (a *app) performWrite() error {
 	averageSpeed := float64(written) / timeTaken.Seconds()
 
 	fmt.Printf(
-		"\nWrite successful.\nTime taken: %s, Average write speed: %s/s\n",
+		"\n%s successful.\nTime taken: %s, Average write speed: %s/s\n",
+		a.actionWord,
 		timeTaken,
 		humanize.Bytes(uint64(averageSpeed)),
 	)
@@ -127,7 +169,7 @@ func (a *app) performWrite() error {
 	return a.device.Sync()
 }
 
-func (a *app) confirm() error {
+func (a *writerApp) confirm() error {
 	var confirm bool
 	err := huh.NewConfirm().
 		Title(fmt.Sprintf("WARNING: This will wipe the drive %s.", a.cfg.device)).

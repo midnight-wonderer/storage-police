@@ -36,15 +36,26 @@ type progressRecord struct {
 	bytes     int64
 }
 
-func parseDeviceConfig(cmd *cli.Command) (*deviceConfig, error) {
+func parseDeviceConfig(cmd *cli.Command, seedParam *string) (*deviceConfig, error) {
 	if cmd.Args().Present() {
 		return nil, fmt.Errorf("unknown argument: %s", cmd.Args().First())
 	}
-	seed := cmd.String("seed")
+
+	var seed string
+	if seedParam != nil {
+		seed = *seedParam
+	} else {
+		seed = cmd.String("seed")
+	}
+
 	if seed == "" {
 		return nil, fmt.Errorf("seed is required")
 	}
 	device := cmd.StringArg("device")
+
+	if device == "" {
+		return nil, fmt.Errorf("device is required")
+	}
 
 	fileInfo, err := os.Stat(device)
 	if err != nil {

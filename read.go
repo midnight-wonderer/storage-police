@@ -40,11 +40,14 @@ var readCmd = &cli.Command{
 }
 
 func newReader(ctx context.Context, cmd *cli.Command) (*readerApp, error) {
-	cfg, err := parseDeviceConfig(cmd)
+	cfg, err := parseDeviceConfig(cmd, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &readerApp{baseApp: baseApp{ctx: ctx, cfg: cfg}}, nil
+	a := &readerApp{}
+	a.ctx = ctx
+	a.cfg = cfg
+	return a, nil
 }
 
 func (a *readerApp) run() error {

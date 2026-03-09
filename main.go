@@ -16,10 +16,13 @@ func main() {
 
 	cmd := &cli.Command{
 		Name:                  "storage-police",
+		Usage:                 "catch storage frauds",
+		Description:           "storage-police is a utility to detect fraudulent storages by writing a determinable sequence onto the device and reading it back to verify actual capacity and data integrity.",
 		EnableShellCompletion: true,
 		Commands: []*cli.Command{
-			readCmd,
 			writeCmd,
+			readCmd,
+			scrubCmd,
 			versionCmd,
 		},
 	}
