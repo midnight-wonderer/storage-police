@@ -16,13 +16,13 @@
 ## 🎁 Bonus Capabilities
 
 - **⚡ Performance Benchmarking**: Real-time monitoring of sequential write and read speeds, serving as an unintentional benchmark.
-- **🧹 Secure Data Wiping**: A dedicated `scrub` mode to reliably overwrite devices with unpredictable random data.
+- **🧹 Secure Data Wiping**: A dedicated `shred` mode to reliably overwrite devices with unpredictable random data.
 
 ## ✨ The "Secret Sauce" (Why it wins)
 
-- **🛡 Unfakable Verification**: Uses an unpredictable BLAKE3-based sequence to prevent disk controllers from cheating via transparent data compression or deduplication.
+- **🕵️‍♀️ Unfakable Verification**: Uses an unpredictable BLAKE3-based sequence to prevent disk controllers from cheating via transparent data compression or deduplication.
 - **📍 Byte-Perfect Testing**: Mirrors real-world conditions by ensuring every byte is physically stored and can be accurately retrieved.
-- **⏱ High-Efficiency Testing**: Specifically focused on retention and integrity, resulting in significantly shorter test times than general-purpose tools.
+- **🏍️ High-Efficiency Testing**: Specifically focused on retention and integrity, resulting in significantly shorter test times than general-purpose tools.
 - **💻 Streamlined UX**: Inspired by `disktest` but redesigned for simplicity with intuitive parameters and clear, modern feedback.
 
 ---
@@ -81,7 +81,7 @@ storage-police --help
 > The `write` commands will **completely wipe** the target storage device. Double-check your device path (e.g., `/dev/sdc`) before proceeding. We are not responsible for any accidental data loss.
 
 ### FWIW
-1. **Sudo access**: Most systems require elevated permissions to access raw block devices.
+1. **Sudo Access**: Most systems require elevated permissions to access raw block devices. If the utility is in your `$PATH`, try: `sudo $(which storage-police)`.
 2. **Power Cycle**: For the most reliable "fake capacity" detection, unplug and replug the device after the `write` phase before starting the `read` phase. This clears any volatile cache.
 
 ---
@@ -98,8 +98,8 @@ OUTPUT_STREAM := BLAKE3_XOF(SEED)
 ```
 This provides cryptographically strong randomness at speeds that typically exceed the storage media's physical limits.
 
-### Is `scrub` Secure?
-Yes. The `scrub` subcommand uses your system's cryptographically secure random number generator (CSPRNG) to initialize the seed, ensuring the data written is unpredictable.
+### Is `shred` Secure?
+Yes. The `shred` subcommand uses your system's cryptographically secure random number generator (CSPRNG) to initialize the seed, ensuring the data written is unpredictable.
 
 > [!NOTE]  
 > On SSDs, internal wear-leveling might prevent 100% physical erasure of every NAND cell. For ultra-sensitive data, physical destruction is recommended.

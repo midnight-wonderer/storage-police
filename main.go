@@ -22,7 +22,7 @@ func main() {
 		Commands: []*cli.Command{
 			writeCmd,
 			readCmd,
-			scrubCmd,
+			shredCmd,
 			versionCmd,
 		},
 	}

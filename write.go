@@ -18,7 +18,7 @@ type mode int
 
 const (
 	modeWrite mode = iota + 1
-	modeScrub
+	modeShred
 )
 
 type writerApp struct {
@@ -54,16 +54,16 @@ var writeCmd = &cli.Command{
 	},
 }
 
-var scrubCmd = &cli.Command{
-	Name: "scrub",
+var shredCmd = &cli.Command{
+	Name: "shred",
 	Arguments: []cli.Argument{
 		&cli.StringArg{
 			Name: "device",
 		},
 	},
-	Usage: "securely scrub a drive with a pseudorandom binary sequence",
+	Usage: "securely shred a drive with a pseudorandom binary sequence",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		app, err := newWriter(ctx, cmd, modeScrub, "Scrub")
+		app, err := newWriter(ctx, cmd, modeShred, "Shred")
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ var scrubCmd = &cli.Command{
 
 func newWriter(ctx context.Context, cmd *cli.Command, m mode, actionWord string) (*writerApp, error) {
 	var seed *string
-	if m == modeScrub {
+	if m == modeShred {
 		b := make([]byte, 32)
 		if _, err := rand.Read(b); err != nil {
 			return nil, fmt.Errorf("Failed to generate random seed: %w", err)
