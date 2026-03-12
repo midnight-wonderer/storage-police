@@ -33,7 +33,7 @@
 Download the latest pre-compiled binaries for Linux, macOS, and Windows from our [Releases Page](https://github.com/midnight-wonderer/storage-police/releases).
 
 > [!NOTE]
-> For full transparency and peace of mind, all pre-built binaries are compiled automatically directly from source via [GitHub Actions](https://github.com/midnight-wonderer/storage-police/actions/workflows/release.yml).
+> For full transparency and peace of mind, all pre-built binaries include [GitHub Build Provenance](https://github.com/midnight-wonderer/storage-police/attestations) to verify they are compiled automatically directly from source.
 
 ### 🥬 Option 2: Build From Source
 If you have [Go](https://golang.org/doc/install) installed:
