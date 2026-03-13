@@ -126,6 +126,12 @@ storage-police completion bash > ~/.local/share/bash-completion/completions/stor
 - [**disktest**](https://bues.ch/cms/hacking/disktest) - The primary inspiration for this tool.
 - [**f3 (Fight Flash Fraud)**](https://github.com/AltraMayor/f3) - A classic tool for testing capacity and performance.
 
+## 🤝 Help Wanted: Cross-Platform Testing
+
+We are looking for testers to verify **Storage Police** on Windows and macOS. If you have access to these systems and a spare USB drive, please consider helping out!
+
+Check out [this thread](https://github.com/midnight-wonderer/storage-police/discussions/1) for instructions on how to participate and report your findings.
+
 ---
 
 ## 📜 License
